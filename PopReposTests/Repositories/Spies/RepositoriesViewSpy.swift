@@ -18,6 +18,8 @@ class RepositoriesViewSpy: RepositoriesViewDelegate {
     var setLoadingTrueCalled = false
     var setLoadingFalseCalled = false
     var shareRepositoryUrlAddressCalled = false
+    var showEmptyDataViewWithMessageCalled = false
+    var hideEmptyDataViewCalled = false
     
     func reloadData() {
         reloadDataCalled = true
@@ -46,5 +48,14 @@ class RepositoriesViewSpy: RepositoriesViewDelegate {
     func shareRepository(url address: URL) {
         shareRepositoryUrlAddressCalled = true
     }
+    
+    func showEmptyDataView(with message: String?) {
+        showEmptyDataViewWithMessageCalled = true
+    }
+    
+    func hideEmptyDataView() {
+        hideEmptyDataViewCalled = true
+    }
+    
     
 }

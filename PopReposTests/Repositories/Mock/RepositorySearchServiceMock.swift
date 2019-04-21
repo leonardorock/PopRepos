@@ -17,7 +17,7 @@ class RepositorySearchServiceMock: RepositorySearchService {
     
     var requestsShouldFail = false
     
-    override func fetchPopularSwiftRepositories(atPage page: Int, completion: @escaping (Result<RepositoriesResponse, Error>) -> Void) {
+    override func fetchPopularSwiftRepositories(atPage page: Int, with query: String?, completion: @escaping (Result<RepositoriesResponse, Error>) -> Void) -> URLSessionDataTask? {
         if !requestsShouldFail {
             let bundle = Bundle(for: RepositorySearchServiceMock.self)
             let url = URL(fileURLWithPath: bundle.path(forResource: "repositoriesResponse", ofType: "json")!)
@@ -27,6 +27,7 @@ class RepositorySearchServiceMock: RepositorySearchService {
         } else {
             completion(.failure(FakeError.error))
         }
+        return nil
     }
     
 }

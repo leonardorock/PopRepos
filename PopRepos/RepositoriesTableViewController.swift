@@ -9,12 +9,21 @@
 import UIKit
 import SafariServices
 
-final class RepositoriesTableViewController: UITableViewController, UIViewControllerPreviewingDelegate, RepositoriesViewDelegate {
+final class RepositoriesTableViewController: UITableViewController, UIViewControllerPreviewingDelegate, UISearchControllerDelegate, UISearchBarDelegate, RepositoriesViewDelegate {
     
     lazy var presenter: RepositoriesPresenterDelegate = {
         let presenter = RepositoriesPresenter(service: RepositorySearchService(configuration: .github))
         presenter.delegate = self
         return presenter
+    }()
+    
+    lazy var searchResultsController = RepositoriesTableViewController(style: .plain)
+    
+    lazy var searchController: UISearchController = {
+        let searchController = UISearchController(searchResultsController: searchResultsController)
+        searchController.searchBar.delegate = searchResultsController
+        searchController.delegate = self
+        return searchController
     }()
     
     lazy var activityIndicatorView: UIActivityIndicatorView = {
@@ -30,10 +39,19 @@ final class RepositoriesTableViewController: UITableViewController, UIViewContro
         return refreshControl
     }()
     
+    lazy var emptyDataView: EmptyDataView = {
+        let emptyDataView = EmptyDataView(title: ":(", subtitle: nil, actionButtonTitle: nil)
+        emptyDataView.hidesActionButton = true
+        return emptyDataView
+    }()
+    
+    var previewingContext: UIViewControllerPreviewing?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupTableView()
         registerForPreviewingIfAvailable()
+        setupNavigationController()
         presenter.fetchRepositories()
     }
     
@@ -44,9 +62,14 @@ final class RepositoriesTableViewController: UITableViewController, UIViewContro
         tableView.refreshControl = repositoriesRefreshControl
     }
     
+    private func setupNavigationController() {
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
+    }
+    
     private func registerForPreviewingIfAvailable() {
         if traitCollection.forceTouchCapability == .available {
-            registerForPreviewing(with: self, sourceView: tableView)
+            previewingContext = registerForPreviewing(with: self, sourceView: tableView)
         }
     }
     
@@ -101,6 +124,26 @@ final class RepositoriesTableViewController: UITableViewController, UIViewContro
         present(viewControllerToCommit, animated: true, completion: nil)
     }
     
+    // MARK: - Search bar delegate
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        presenter.setRepositories(searchQuery: searchBar.text)
+    }
+    
+    // MARK: - Search controller delegate
+    
+    func willPresentSearchController(_ searchController: UISearchController) {
+        guard let previewingContext = self.previewingContext else { return }
+        unregisterForPreviewing(withContext: previewingContext)
+        self.previewingContext = searchController.registerForPreviewing(with: searchResultsController, sourceView: searchResultsController.tableView)
+    }
+    
+    func willDismissSearchController(_ searchController: UISearchController) {
+        guard let previewingContext = self.previewingContext else { return }
+        unregisterForPreviewing(withContext: previewingContext)
+        registerForPreviewingIfAvailable()
+    }
+    
     // MARK: - Repositories view delegate
     
     func reloadData() {
@@ -137,6 +180,15 @@ final class RepositoriesTableViewController: UITableViewController, UIViewContro
             activityIndicatorView.stopAnimating()
             tableView.refreshControl?.endRefreshing()
         }
+    }
+    
+    func showEmptyDataView(with message: String?) {
+        emptyDataView.subtitleLabel.text = message
+        tableView.backgroundView = emptyDataView
+    }
+    
+    func hideEmptyDataView() {
+        tableView.backgroundView = nil
     }
 
 }

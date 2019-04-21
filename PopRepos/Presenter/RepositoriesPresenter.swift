@@ -15,6 +15,8 @@ protocol RepositoriesViewDelegate: class {
     func presentError(message: String)
     func setLoading(_ isLoading: Bool)
     func shareRepository(url address: URL)
+    func showEmptyDataView(with message: String?)
+    func hideEmptyDataView()
 }
 
 protocol RepositoriesPresenterDelegate: class {
@@ -24,6 +26,7 @@ protocol RepositoriesPresenterDelegate: class {
     func fetchRepositories()
     func refreshRepositories()
     func repository(at index: Int) -> RepositoryDataView
+    func setRepositories(searchQuery: String?)
     func willDisplayRepository(at index: Int)
     func didSelectRepository(at index: Int)
     func didTapShareRepository(at index: Int)
@@ -41,7 +44,9 @@ class RepositoriesPresenter: RepositoriesPresenterDelegate {
     }
     
     private var repositories: [Repository] = []
+    private var searchQuery: String?
     private var currentPage = 1
+    private var repositoriesDataTask: URLSessionDataTask?
     private var isLoading = false {
         didSet {
             delegate?.setLoading(isLoading)
@@ -54,7 +59,7 @@ class RepositoriesPresenter: RepositoriesPresenterDelegate {
     
     func fetchRepositories() {
         isLoading = true
-        service?.fetchPopularSwiftRepositories(atPage: currentPage, completion: { [weak self] result in
+        repositoriesDataTask = service?.fetchPopularSwiftRepositories(atPage: currentPage, with: searchQuery, completion: { [weak self] result in
             self?.isLoading = false
             switch result {
             case .success(let repositoriesResponse):
@@ -76,6 +81,13 @@ class RepositoriesPresenter: RepositoriesPresenterDelegate {
         return RepositoryDataView(repository: repositories[index])
     }
     
+    func setRepositories(searchQuery: String?) {
+        self.searchQuery = searchQuery
+        repositoriesDataTask?.cancel()
+        repositoriesDataTask = nil
+        refreshRepositories()
+    }
+    
     func willDisplayRepository(at index: Int) {
         guard index == repositories.count - 1 && !isLoading else { return }
         fetchRepositories()
@@ -95,6 +107,21 @@ class RepositoriesPresenter: RepositoriesPresenterDelegate {
         repositories.append(contentsOf: repositoriesResponse.items)
         currentPage += 1
         delegate?.insertRepositories(in: lowerBand..<upperBand)
+        showEmptyDataViewIfNeeded()
+    }
+    
+    private func showEmptyDataViewIfNeeded() {
+        if repositories.isEmpty {
+            let message: String
+            if let searchQuery = self.searchQuery {
+                message = "No swift repositories found with \"\(searchQuery)\"."
+            } else {
+                message = "No swift repositories found"
+            }
+            delegate?.showEmptyDataView(with: message)
+        } else {
+            delegate?.hideEmptyDataView()
+        }
     }
     
 }

@@ -6,6 +6,8 @@
 //  Copyright © 2019 Leonardo Oliveira. All rights reserved.
 //
 
+import Foundation
+
 class RepositorySearchService: Service {
     
     var configuration: ServiceConfiguration
@@ -15,14 +17,14 @@ class RepositorySearchService: Service {
         self.configuration = configuration
     }
     
-    func fetchPopularSwiftRepositories(atPage page: Int, completion: @escaping (Result<RepositoriesResponse, Error>) -> Void) {
+    func fetchPopularSwiftRepositories(atPage page: Int, with query: String?, completion: @escaping (Result<RepositoriesResponse, Error>) -> Void) -> URLSessionDataTask? {
         
         var parameters: [String : Any] = [:]
-        parameters["q"] = "language:swift"
+        parameters["q"] = "\(query ?? "")+language:swift"
         parameters["sort"] = "stars"
         parameters["page"] = page
         
-        request(method: .get, parameters: parameters, completion: completion)
+        return request(method: .get, parameters: parameters, completion: completion)
     }
     
 }

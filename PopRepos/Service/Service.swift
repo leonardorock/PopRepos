@@ -27,22 +27,22 @@ extension Service {
         return .shared
     }
     
-    func request<T>(resource: String? = nil, method: HTTPMethod, parameters: [String: Any], completion: @escaping (Result<T, Error>) -> Void) where T : Codable {
+    @discardableResult
+    func request<T>(resource: String? = nil, method: HTTPMethod, parameters: [String: Any], completion: @escaping (Result<T, Error>) -> Void) -> URLSessionDataTask? where T : Codable {
         var url = configuration.baseURL.appendingPathComponent(endPoint)
         if let resource = resource {
             url.appendPathComponent(resource)
         }
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: "\($0.value)") }
-        guard let componentsURL = components?.url else {
-            return
-        }
+        guard let componentsURL = components?.url else { return nil }
         var urlRequest = URLRequest(url: componentsURL)
         urlRequest.httpMethod = method.rawValue
-        request(request: urlRequest, completion: completion)
+        return request(request: urlRequest, completion: completion)
     }
     
-    func request<T>(request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) where T : Codable {
+    @discardableResult
+    func request<T>(request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) -> URLSessionDataTask where T : Codable {
         let task = session.dataTask(with: request) { [weak self] (data, response, error) in
             self?.session.finishTasksAndInvalidate()
             do {
@@ -62,6 +62,7 @@ extension Service {
             
         }
         task.resume()
+        return task
     }
     
 }
